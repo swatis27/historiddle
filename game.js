@@ -20,11 +20,24 @@ const MAX_ATTEMPTS = 3;
 // Points awarded for a correct guess, keyed by which attempt it was.
 const POINTS_BY_ATTEMPT = { 1: 30, 2: 20, 3: 10 };
 
-// Starts a new round: picks a random person from PERSONALITIES (loaded from
-// data.js via a <script> tag) and resets everything else back to zero.
-function startNewRound() {
-  const randomIndex = Math.floor(Math.random() * PERSONALITIES.length);
-  gameState.currentPerson = PERSONALITIES[randomIndex];
+// Narrows PERSONALITIES (loaded from data.js via a <script> tag) down to
+// just the entries matching a difficulty, or the full list for "all".
+function getPersonalitiesByDifficulty(difficulty) {
+  if (difficulty === "all") {
+    return PERSONALITIES;
+  }
+  return PERSONALITIES.filter(function (person) {
+    return person.difficulty === difficulty;
+  });
+}
+
+// Starts a new round: picks a random person from the chosen difficulty pool
+// ("all", "easy", "medium", or "hard") and resets everything else back to
+// zero.
+function startNewRound(difficulty) {
+  const pool = getPersonalitiesByDifficulty(difficulty);
+  const randomIndex = Math.floor(Math.random() * pool.length);
+  gameState.currentPerson = pool[randomIndex];
   gameState.attempts = 0;
   gameState.hintsRevealed = [];
   gameState.roundOver = false;

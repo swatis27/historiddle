@@ -46,6 +46,28 @@ h1 {
   margin-bottom: 20px;
 }
 
+.difficulty-row {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 20px;
+  font-weight: bold;
+  color: var(--color-heading);
+}
+
+#difficultySelect {
+  padding: 6px 14px;
+  border: 2px solid var(--color-heading);
+  border-radius: 999px;
+  background: white;
+  color: var(--color-heading);
+  font-family: inherit;
+  font-size: 0.95rem;
+  font-weight: bold;
+  cursor: pointer;
+}
+
 /* Frames the map (and its credit line) as its own module inside the page
    card: a rounded, bordered box with its own subtle shadow. overflow:hidden
    is what makes the map's square corners actually look rounded — without

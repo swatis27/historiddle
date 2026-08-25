@@ -5,6 +5,7 @@
 const PERSONALITIES = [
   {
     name: "Albert Einstein",
+    difficulty: "easy",
     acceptedAnswers: ["albert einstein", "einstein"],
     birthYear: 1879,
     birthCity: "Ulm",
@@ -23,6 +24,7 @@ const PERSONALITIES = [
   },
   {
     name: "Ludwig van Beethoven",
+    difficulty: "easy",
     acceptedAnswers: ["ludwig van beethoven", "beethoven"],
     birthYear: 1770,
     birthCity: "Bonn",
@@ -41,6 +43,7 @@ const PERSONALITIES = [
   },
   {
     name: "Alexander the Great",
+    difficulty: "easy",
     acceptedAnswers: ["alexander the great", "alexander iii of macedon", "alexander"],
     birthYear: -356,
     birthCity: "Pella",
@@ -59,6 +62,7 @@ const PERSONALITIES = [
   },
   {
     name: "Marie Curie",
+    difficulty: "easy",
     acceptedAnswers: ["marie curie", "marie sklodowska-curie", "curie"],
     birthYear: 1867,
     birthCity: "Warsaw",
@@ -77,6 +81,7 @@ const PERSONALITIES = [
   },
   {
     name: "Christopher Columbus",
+    difficulty: "easy",
     acceptedAnswers: ["christopher columbus", "columbus"],
     birthYear: 1451,
     birthCity: "Genoa",
@@ -95,6 +100,7 @@ const PERSONALITIES = [
   },
   {
     name: "Ferdinand Magellan",
+    difficulty: "medium",
     acceptedAnswers: ["ferdinand magellan", "magellan"],
     birthYear: 1480,
     birthCity: "Sabrosa",
@@ -113,6 +119,7 @@ const PERSONALITIES = [
   },
   {
     name: "Napoleon Bonaparte",
+    difficulty: "easy",
     acceptedAnswers: ["napoleon bonaparte", "napoleon", "napoleon i"],
     birthYear: 1769,
     birthCity: "Ajaccio",
@@ -131,6 +138,7 @@ const PERSONALITIES = [
   },
   {
     name: "Catherine the Great",
+    difficulty: "medium",
     acceptedAnswers: ["catherine the great", "catherine ii", "catherine ii of russia"],
     birthYear: 1729,
     birthCity: "Stettin",
@@ -149,6 +157,7 @@ const PERSONALITIES = [
   },
   {
     name: "Hannibal Barca",
+    difficulty: "medium",
     acceptedAnswers: ["hannibal barca", "hannibal"],
     birthYear: -247,
     birthCity: "Carthage",
@@ -167,6 +176,7 @@ const PERSONALITIES = [
   },
   {
     name: "Freddie Mercury",
+    difficulty: "easy",
     acceptedAnswers: ["freddie mercury", "farrokh bulsara"],
     birthYear: 1946,
     birthCity: "Stone Town",
@@ -185,6 +195,7 @@ const PERSONALITIES = [
   },
   {
     name: "Nikola Tesla",
+    difficulty: "easy",
     acceptedAnswers: ["nikola tesla", "tesla"],
     birthYear: 1856,
     birthCity: "Smiljan",
@@ -203,6 +214,7 @@ const PERSONALITIES = [
   },
   {
     name: "Leon Trotsky",
+    difficulty: "medium",
     acceptedAnswers: ["leon trotsky", "trotsky", "lev trotsky"],
     birthYear: 1879,
     birthCity: "Yanovka",
@@ -221,6 +233,7 @@ const PERSONALITIES = [
   },
   {
     name: "Paul Gauguin",
+    difficulty: "medium",
     acceptedAnswers: ["paul gauguin", "gauguin"],
     birthYear: 1848,
     birthCity: "Paris",
@@ -239,6 +252,7 @@ const PERSONALITIES = [
   },
   {
     name: "Robert Louis Stevenson",
+    difficulty: "medium",
     acceptedAnswers: ["robert louis stevenson", "stevenson"],
     birthYear: 1850,
     birthCity: "Edinburgh",
@@ -257,6 +271,7 @@ const PERSONALITIES = [
   },
   {
     name: "George Orwell",
+    difficulty: "easy",
     acceptedAnswers: ["george orwell", "orwell", "eric arthur blair", "eric blair"],
     birthYear: 1903,
     birthCity: "Motihari",
@@ -275,6 +290,7 @@ const PERSONALITIES = [
   },
   {
     name: "Vasco da Gama",
+    difficulty: "medium",
     acceptedAnswers: ["vasco da gama", "vasco de gama", "da gama"],
     birthYear: 1460,
     birthCity: "Sines",
@@ -293,6 +309,7 @@ const PERSONALITIES = [
   },
   {
     name: "Leonardo da Vinci",
+    difficulty: "easy",
     acceptedAnswers: ["leonardo da vinci", "da vinci", "leonardo"],
     birthYear: 1452,
     birthCity: "Vinci",
@@ -311,6 +328,7 @@ const PERSONALITIES = [
   },
   {
     name: "Marie Antoinette",
+    difficulty: "easy",
     acceptedAnswers: ["marie antoinette"],
     birthYear: 1755,
     birthCity: "Vienna",
@@ -329,6 +347,7 @@ const PERSONALITIES = [
   },
   {
     name: "Toussaint Louverture",
+    difficulty: "hard",
     acceptedAnswers: ["toussaint louverture", "toussaint l'ouverture", "toussaint"],
     birthYear: 1743,
     birthCity: "Cap-Haitien",
@@ -347,7 +366,8 @@ const PERSONALITIES = [
   },
   {
     name: "Empress Elisabeth of Austria",
-    acceptedAnswers: ["empress elisabeth of austria", "elisabeth of austria", "sisi", "sissi"],
+    difficulty: "hard",
+    acceptedAnswers: ["empress elisabeth of austria", "elisabeth of austria", "elisabeth", "sisi", "sissi"],
     birthYear: 1837,
     birthCity: "Munich",
     birthCountry: "Germany",
@@ -365,6 +385,7 @@ const PERSONALITIES = [
   },
   {
     name: "Josephine Baker",
+    difficulty: "medium",
     acceptedAnswers: ["josephine baker"],
     birthYear: 1906,
     birthCity: "St. Louis",
@@ -383,6 +404,7 @@ const PERSONALITIES = [
   },
   {
     name: "James Joyce",
+    difficulty: "medium",
     acceptedAnswers: ["james joyce", "joyce"],
     birthYear: 1882,
     birthCity: "Dublin",
@@ -401,6 +423,7 @@ const PERSONALITIES = [
   },
   {
     name: "Rudyard Kipling",
+    difficulty: "medium",
     acceptedAnswers: ["rudyard kipling", "kipling"],
     birthYear: 1865,
     birthCity: "Bombay",
@@ -419,6 +442,7 @@ const PERSONALITIES = [
   },
   {
     name: "Sigmund Freud",
+    difficulty: "easy",
     acceptedAnswers: ["sigmund freud", "freud"],
     birthYear: 1856,
     birthCity: "Freiberg",
@@ -437,6 +461,7 @@ const PERSONALITIES = [
   },
   {
     name: "Bruce Lee",
+    difficulty: "easy",
     acceptedAnswers: ["bruce lee"],
     birthYear: 1940,
     birthCity: "San Francisco",
@@ -455,6 +480,7 @@ const PERSONALITIES = [
   },
   {
     name: "Captain James Cook",
+    difficulty: "medium",
     acceptedAnswers: ["captain james cook", "james cook", "captain cook"],
     birthYear: 1728,
     birthCity: "Marton",
@@ -473,6 +499,7 @@ const PERSONALITIES = [
   },
   {
     name: "Thomas Paine",
+    difficulty: "medium",
     acceptedAnswers: ["thomas paine", "paine"],
     birthYear: 1737,
     birthCity: "Thetford",
@@ -491,6 +518,7 @@ const PERSONALITIES = [
   },
   {
     name: "Suleiman the Magnificent",
+    difficulty: "medium",
     acceptedAnswers: ["suleiman the magnificent", "suleiman i", "suleiman"],
     birthYear: 1494,
     birthCity: "Trabzon",
@@ -509,6 +537,7 @@ const PERSONALITIES = [
   },
   {
     name: "Giacomo Casanova",
+    difficulty: "medium",
     acceptedAnswers: ["giacomo casanova", "casanova"],
     birthYear: 1725,
     birthCity: "Venice",
@@ -527,6 +556,7 @@ const PERSONALITIES = [
   },
   {
     name: "George Frideric Handel",
+    difficulty: "medium",
     acceptedAnswers: ["george frideric handel", "george frederick handel", "handel"],
     birthYear: 1685,
     birthCity: "Halle",
@@ -545,6 +575,7 @@ const PERSONALITIES = [
   },
   {
     name: "El Greco",
+    difficulty: "hard",
     acceptedAnswers: ["el greco", "domenikos theotokopoulos"],
     birthYear: 1541,
     birthCity: "Candia",
@@ -563,6 +594,7 @@ const PERSONALITIES = [
   },
   {
     name: "Vincent van Gogh",
+    difficulty: "easy",
     acceptedAnswers: ["vincent van gogh", "van gogh"],
     birthYear: 1853,
     birthCity: "Zundert",
@@ -581,6 +613,7 @@ const PERSONALITIES = [
   },
   {
     name: "Frederic Chopin",
+    difficulty: "medium",
     acceptedAnswers: ["frederic chopin", "chopin", "fryderyk chopin"],
     birthYear: 1810,
     birthCity: "Zelazowa Wola",
@@ -599,6 +632,7 @@ const PERSONALITIES = [
   },
   {
     name: "Karl Marx",
+    difficulty: "easy",
     acceptedAnswers: ["karl marx", "marx"],
     birthYear: 1818,
     birthCity: "Trier",
@@ -617,6 +651,7 @@ const PERSONALITIES = [
   },
   {
     name: "Che Guevara",
+    difficulty: "easy",
     acceptedAnswers: ["che guevara", "che", "ernesto guevara"],
     birthYear: 1928,
     birthCity: "Rosario",
@@ -635,6 +670,7 @@ const PERSONALITIES = [
   },
   {
     name: "Pablo Picasso",
+    difficulty: "easy",
     acceptedAnswers: ["pablo picasso", "picasso"],
     birthYear: 1881,
     birthCity: "Malaga",
@@ -653,6 +689,7 @@ const PERSONALITIES = [
   },
   {
     name: "Oscar Wilde",
+    difficulty: "medium",
     acceptedAnswers: ["oscar wilde", "wilde"],
     birthYear: 1854,
     birthCity: "Dublin",
@@ -671,6 +708,7 @@ const PERSONALITIES = [
   },
   {
     name: "Alexander Graham Bell",
+    difficulty: "easy",
     acceptedAnswers: ["alexander graham bell", "alexander bell"],
     birthYear: 1847,
     birthCity: "Edinburgh",
@@ -689,6 +727,7 @@ const PERSONALITIES = [
   },
   {
     name: "Albert Schweitzer",
+    difficulty: "hard",
     acceptedAnswers: ["albert schweitzer", "schweitzer"],
     birthYear: 1875,
     birthCity: "Kaysersberg",
@@ -707,6 +746,7 @@ const PERSONALITIES = [
   },
   {
     name: "Anna Pavlova",
+    difficulty: "hard",
     acceptedAnswers: ["anna pavlova", "pavlova"],
     birthYear: 1881,
     birthCity: "Saint Petersburg",
@@ -725,6 +765,7 @@ const PERSONALITIES = [
   },
   {
     name: "Harry Houdini",
+    difficulty: "easy",
     acceptedAnswers: ["harry houdini", "houdini"],
     birthYear: 1874,
     birthCity: "Budapest",
@@ -743,6 +784,7 @@ const PERSONALITIES = [
   },
   {
     name: "Mata Hari",
+    difficulty: "medium",
     acceptedAnswers: ["mata hari"],
     birthYear: 1876,
     birthCity: "Leeuwarden",
@@ -761,6 +803,7 @@ const PERSONALITIES = [
   },
   {
     name: "Charlie Chaplin",
+    difficulty: "easy",
     acceptedAnswers: ["charlie chaplin", "chaplin"],
     birthYear: 1889,
     birthCity: "London",
@@ -779,6 +822,7 @@ const PERSONALITIES = [
   },
   {
     name: "Vladimir Nabokov",
+    difficulty: "medium",
     acceptedAnswers: ["vladimir nabokov", "nabokov"],
     birthYear: 1899,
     birthCity: "Saint Petersburg",
@@ -797,6 +841,7 @@ const PERSONALITIES = [
   },
   {
     name: "Jim Morrison",
+    difficulty: "medium",
     acceptedAnswers: ["jim morrison", "morrison"],
     birthYear: 1943,
     birthCity: "Melbourne",
@@ -815,6 +860,7 @@ const PERSONALITIES = [
   },
   {
     name: "Antonio Vivaldi",
+    difficulty: "medium",
     acceptedAnswers: ["antonio vivaldi", "vivaldi"],
     birthYear: 1678,
     birthCity: "Venice",
@@ -833,6 +879,7 @@ const PERSONALITIES = [
   },
   {
     name: "Simon Bolivar",
+    difficulty: "medium",
     acceptedAnswers: ["simon bolivar", "bolivar"],
     birthYear: 1783,
     birthCity: "Caracas",
@@ -851,6 +898,7 @@ const PERSONALITIES = [
   },
   {
     name: "T.S. Eliot",
+    difficulty: "medium",
     acceptedAnswers: ["t.s. eliot", "ts eliot", "t. s. eliot", "eliot"],
     birthYear: 1888,
     birthCity: "St. Louis",
@@ -869,6 +917,7 @@ const PERSONALITIES = [
   },
   {
     name: "Ernest Shackleton",
+    difficulty: "medium",
     acceptedAnswers: ["ernest shackleton", "shackleton"],
     birthYear: 1874,
     birthCity: "Kilkea",
@@ -887,6 +936,7 @@ const PERSONALITIES = [
   },
   {
     name: "Bob Marley",
+    difficulty: "easy",
     acceptedAnswers: ["bob marley", "marley"],
     birthYear: 1945,
     birthCity: "Nine Mile",
@@ -905,6 +955,7 @@ const PERSONALITIES = [
   },
   {
     name: "Babur",
+    difficulty: "hard",
     acceptedAnswers: ["babur"],
     birthYear: 1483,
     birthCity: "Andijan",
@@ -923,6 +974,7 @@ const PERSONALITIES = [
   },
   {
     name: "Timur",
+    difficulty: "hard",
     acceptedAnswers: ["timur", "tamerlane", "amir timur"],
     birthYear: 1336,
     birthCity: "Shahrisabz",
@@ -941,6 +993,7 @@ const PERSONALITIES = [
   },
   {
     name: "Bahadur Shah Zafar",
+    difficulty: "hard",
     acceptedAnswers: ["bahadur shah zafar", "bahadur shah ii", "zafar"],
     birthYear: 1775,
     birthCity: "Delhi",
@@ -959,6 +1012,7 @@ const PERSONALITIES = [
   },
   {
     name: "Raja Ram Mohan Roy",
+    difficulty: "hard",
     acceptedAnswers: ["raja ram mohan roy", "ram mohan roy", "rammohan roy"],
     birthYear: 1772,
     birthCity: "Radhanagar",
@@ -977,6 +1031,7 @@ const PERSONALITIES = [
   },
   {
     name: "Koxinga",
+    difficulty: "hard",
     acceptedAnswers: ["koxinga", "zheng chenggong"],
     birthYear: 1624,
     birthCity: "Hirado",
@@ -995,6 +1050,7 @@ const PERSONALITIES = [
   },
   {
     name: "Yamamoto Isoroku",
+    difficulty: "hard",
     acceptedAnswers: ["yamamoto isoroku", "isoroku yamamoto", "yamamoto"],
     birthYear: 1884,
     birthCity: "Nagaoka",
@@ -1013,6 +1069,7 @@ const PERSONALITIES = [
   },
   {
     name: "Zheng He",
+    difficulty: "hard",
     acceptedAnswers: ["zheng he", "cheng ho"],
     birthYear: 1371,
     birthCity: "Kunyang",

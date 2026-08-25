@@ -11,6 +11,16 @@
 
   <h1>Guess the Personality</h1>
 
+  <div class="difficulty-row">
+    <label for="difficultySelect">Difficulty:</label>
+    <select id="difficultySelect">
+      <option value="all" selected>All</option>
+      <option value="easy">Easy</option>
+      <option value="medium">Medium</option>
+      <option value="hard">Hard</option>
+    </select>
+  </div>
+
   <div class="map-frame">
     <!-- The map's viewBox matches world-map.svg's own coordinates exactly
          (2520.631 x 1260.315), so lon/lat can be projected onto it directly
@@ -640,7 +650,8 @@
     // Sets up a fresh round: picks a new person (via game.js) and clears
     // everything on the page left over from any previous round.
     function beginRound() {
-      startNewRound();
+      const difficulty = document.getElementById("difficultySelect").value;
+      startNewRound(difficulty);
       document.getElementById("hints").innerHTML = "";
       setFeedback("");
       document.getElementById("guessInput").value = "";
@@ -693,6 +704,10 @@
     // Lets the player jump straight to a new round (whether the current one
     // is won, lost, or still in progress) instead of reloading the page.
     document.getElementById("newRoundButton").addEventListener("click", beginRound);
+
+    // Changing difficulty mid-round starts a fresh round from the new pool
+    // right away, rather than waiting for the player to click New Round.
+    document.getElementById("difficultySelect").addEventListener("change", beginRound);
 
     // Start the very first round as soon as the page loads.
     beginRound();
