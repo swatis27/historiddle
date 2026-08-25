@@ -258,7 +258,7 @@
       }, delayMs);
     }
 
-    // --- Map panning ---
+    // --- Map panning & pinch-zoom ---
     //
     // "Pointer events" (pointerdown/pointermove/pointerup) fire for mouse,
     // pen, and touch alike, so click-drag panning works the same way
@@ -269,17 +269,81 @@
     let lastPointerX = 0;
     let lastPointerY = 0;
 
+    // Every pointer currently touching the map, keyed by pointerId, so a
+    // second simultaneous touch can be told apart from an ordinary drag —
+    // two fingers down means the player is pinching to zoom, not panning.
+    let activePointers = new Map();
+    let pinchLastDistance = 0;
+
+    function pointerDistance(a, b) {
+      return Math.hypot(a.x - b.x, a.y - b.y);
+    }
+
+    function pointerMidpoint(a, b) {
+      return { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+    }
+
+    // Zooms toward/away from the current pinch midpoint, exactly like
+    // handleMapWheel does around the cursor, but driven by how much the
+    // distance between the two touches changed since the last move.
+    function applyPinchZoom(midpoint, distance) {
+      const mapElement = document.getElementById("map");
+      const mapRect = mapElement.getBoundingClientRect();
+
+      const anchorX = mapView.x + (midpoint.x - mapRect.left) * (mapView.width / mapRect.width);
+      const anchorY = mapView.y + (midpoint.y - mapRect.top) * (mapView.height / mapRect.height);
+
+      // Fingers spreading apart (distance growing) should zoom in, so a
+      // bigger distance needs to produce a factor below 1.
+      const zoomFactor = pinchLastDistance / distance;
+      let newWidth = mapView.width * zoomFactor;
+      newWidth = Math.min(MAP_WIDTH, Math.max(MIN_VIEW_WIDTH, newWidth));
+      const newHeight = newWidth * MAP_ASPECT_RATIO;
+
+      let newX = anchorX - (anchorX - mapView.x) * (newWidth / mapView.width);
+      let newY = anchorY - (anchorY - mapView.y) * (newHeight / mapView.height);
+
+      newX = Math.min(Math.max(newX, 0), MAP_WIDTH - newWidth);
+      newY = Math.min(Math.max(newY, 0), MAP_HEIGHT - newHeight);
+
+      mapView = { x: newX, y: newY, width: newWidth, height: newHeight };
+      applyMapView();
+
+      pinchLastDistance = distance;
+    }
+
     function handleMapPointerDown(event) {
-      isDragging = true;
-      lastPointerX = event.clientX;
-      lastPointerY = event.clientY;
+      activePointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
       // Routes all pointer events to this element until pointerup, even if
-      // the cursor briefly leaves the map while dragging quickly.
+      // the cursor/finger briefly leaves the map while moving quickly.
       event.target.setPointerCapture(event.pointerId);
+
+      if (activePointers.size === 2) {
+        // A second finger just landed: stop any single-finger pan in
+        // progress and start pinch-zooming instead.
+        isDragging = false;
+        const [a, b] = Array.from(activePointers.values());
+        pinchLastDistance = pointerDistance(a, b);
+      } else if (activePointers.size === 1) {
+        isDragging = true;
+        lastPointerX = event.clientX;
+        lastPointerY = event.clientY;
+      }
       document.getElementById("map").classList.add("dragging");
     }
 
     function handleMapPointerMove(event) {
+      if (!activePointers.has(event.pointerId)) {
+        return;
+      }
+      activePointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
+
+      if (activePointers.size === 2) {
+        const [a, b] = Array.from(activePointers.values());
+        applyPinchZoom(pointerMidpoint(a, b), pointerDistance(a, b));
+        return;
+      }
+
       if (!isDragging) {
         return;
       }
@@ -308,8 +372,19 @@
     }
 
     function handleMapPointerUp(event) {
-      isDragging = false;
-      document.getElementById("map").classList.remove("dragging");
+      activePointers.delete(event.pointerId);
+
+      if (activePointers.size === 1) {
+        // One finger lifted out of a pinch: resume panning from whichever
+        // finger is still down instead of ending input entirely.
+        const remaining = Array.from(activePointers.values())[0];
+        isDragging = true;
+        lastPointerX = remaining.x;
+        lastPointerY = remaining.y;
+      } else {
+        isDragging = false;
+        document.getElementById("map").classList.remove("dragging");
+      }
     }
 
     document.getElementById("map").addEventListener("pointerdown", handleMapPointerDown);
