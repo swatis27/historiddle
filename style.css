@@ -1,0 +1,283 @@
+/* style.css — all styling. No logic lives here. */
+
+:root {
+  --color-bg-start: #fdf0ff;
+  --color-bg-end: #e0f7ff;
+  --color-card-bg: #ffffff;
+  --color-heading: #5b3a8e;
+  --color-accent: #ff6f59;
+  --color-text: #333333;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  font-family: "Trebuchet MS", "Chalkboard SE", "Comic Sans MS", sans-serif;
+  color: var(--color-text);
+  background: linear-gradient(135deg, var(--color-bg-start), var(--color-bg-end));
+  display: flex;
+  justify-content: center;
+  padding: 32px 16px;
+}
+
+.page {
+  background: var(--color-card-bg);
+  max-width: 900px;
+  width: 100%;
+  /* Without this, a flex item's default minimum width is based on the
+     intrinsic size of its content (here, the map's width="1400"
+     attribute), which can force the whole card wider than the screen on
+     narrow windows instead of letting it shrink to fit. */
+  min-width: 0;
+  padding: 24px 32px 32px;
+  border-radius: 20px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+  text-align: center;
+}
+
+h1 {
+  color: var(--color-heading);
+  font-size: 2rem;
+  margin-top: 0;
+  margin-bottom: 20px;
+}
+
+/* Frames the map (and its credit line) as its own module inside the page
+   card: a rounded, bordered box with its own subtle shadow. overflow:hidden
+   is what makes the map's square corners actually look rounded — without
+   it, the border-radius below would just clip the frame, not the image. */
+.map-frame {
+  border: 3px solid var(--color-heading);
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+  margin-bottom: 20px;
+}
+
+/* Each birth/death marker (a <g> grouping its halo, dot, and label)
+   starts invisible and scaled down, then grows to full size once its
+   "marker-visible" class is added from JS. Animating "transform" here
+   (rather than the individual circle/text attributes) is what lets a
+   single group of differently-shaped children pop in together. */
+.marker-pop {
+  opacity: 0;
+  transform: scale(0.4);
+  transition: opacity 0.35s ease-out, transform 0.35s ease-out;
+}
+
+.marker-pop.marker-visible {
+  opacity: 1;
+  transform: scale(1);
+}
+
+/* The line-draw effect: JS sets stroke-dasharray/stroke-dashoffset to the
+   line's own length (fully hidden) and later changes stroke-dashoffset to
+   0; this transition is what makes that change slide into view smoothly
+   instead of jumping straight there. */
+.arrow-line {
+  /* Keep this in sync with ARROW_DRAW_DURATION_MS in index.html — the JS
+     constant drives the death marker's timing and the camera's zoom-out
+     pace, and this is what makes the line itself take the same amount of
+     time to draw. */
+  transition: stroke-dashoffset 1.3s ease-in-out;
+}
+
+/* The arrowhead is a plain triangle positioned by hand (see drawArrow in
+   index.html), kept invisible until the line above has finished drawing. */
+.arrowhead-pop {
+  opacity: 0;
+  transition: opacity 0.2s ease-out;
+}
+
+.arrowhead-pop.arrowhead-visible {
+  opacity: 1;
+}
+
+/* The map's width="1400" attribute is just its intrinsic size; this makes
+   it scale down to fit the card on narrower screens instead of overflowing
+   it. height:auto keeps the aspect ratio the viewBox already defines. */
+#map {
+  display: block;
+  width: 100%;
+  height: auto;
+  cursor: grab;
+  touch-action: none;
+}
+
+#map.dragging {
+  cursor: grabbing;
+}
+
+.map-credit {
+  margin: 0;
+  padding: 6px 12px;
+  background: #f7f7f7;
+  font-size: 0.75rem;
+  font-style: italic;
+  color: #888;
+  text-align: right;
+}
+
+/* Hints unlock one at a time as guesses run out; each one gets its own
+   dashed "note card" so they read as clues, not plain paragraphs. */
+#hints {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+#hints p {
+  margin: 0;
+  padding: 10px 16px;
+  background: #fff4e0;
+  border: 2px dashed var(--color-accent);
+  border-radius: 12px;
+  font-size: 0.95rem;
+  text-align: left;
+}
+
+.hint-icon {
+  margin-right: 2px;
+}
+
+.guess-row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+#guessInput {
+  flex: 1;
+  min-width: 0;
+  max-width: 280px;
+  padding: 10px 16px;
+  border: 2px solid var(--color-heading);
+  border-radius: 999px;
+  font-family: inherit;
+  font-size: 1rem;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+#guessInput:focus {
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 3px rgba(255, 111, 89, 0.25);
+}
+
+#guessInput:disabled {
+  background: #f0f0f0;
+  border-color: #ccc;
+  color: #999;
+}
+
+#submitButton {
+  padding: 10px 24px;
+  border: none;
+  border-radius: 999px;
+  background: var(--color-accent);
+  color: white;
+  font-family: inherit;
+  font-size: 1rem;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.1s;
+}
+
+#submitButton:hover:not(:disabled) {
+  background: #ff8a70;
+  transform: translateY(-1px);
+}
+
+#submitButton:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+#submitButton:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+}
+
+.feedback {
+  min-height: 1.4em;
+  font-weight: bold;
+  margin: 4px 0 20px;
+}
+
+.feedback-success {
+  color: #2e8b57;
+}
+
+.feedback-fail {
+  color: #d94f4f;
+}
+
+/* Makes the revealed personality name jump out of the feedback sentence
+   instead of blending in as plain text. */
+.answer-name {
+  display: inline-block;
+  padding: 1px 10px;
+  margin: 0 2px;
+  background: linear-gradient(135deg, var(--color-heading), var(--color-accent));
+  color: white;
+  font-size: 1.2em;
+  font-weight: 900;
+  letter-spacing: 0.02em;
+  border-radius: 8px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+  animation: answer-name-pop 0.4s ease-out;
+}
+
+@keyframes answer-name-pop {
+  0% {
+    transform: scale(0.5);
+    opacity: 0;
+  }
+  60% {
+    transform: scale(1.1);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.score-badge {
+  display: inline-block;
+  padding: 8px 22px;
+  background: var(--color-heading);
+  color: white;
+  border-radius: 999px;
+  font-weight: bold;
+  font-size: 1.1rem;
+}
+
+.new-round-button {
+  display: block;
+  margin: 16px auto 0;
+  padding: 10px 24px;
+  border: 2px solid var(--color-heading);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--color-heading);
+  font-family: inherit;
+  font-size: 1rem;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s, transform 0.1s;
+}
+
+.new-round-button:hover {
+  background: var(--color-heading);
+  color: white;
+}
+
+.new-round-button:active {
+  transform: translateY(1px);
+}

@@ -1,0 +1,627 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Guess the Personality</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="page">
+
+  <h1>Guess the Personality</h1>
+
+  <div class="map-frame">
+    <!-- The map's viewBox matches world-map.svg's own coordinates exactly
+         (2520.631 x 1260.315), so lon/lat can be projected onto it directly
+         with the formula from CLAUDE.md, with no extra rescaling needed.
+         The width="800" attribute just controls how big it displays on the
+         page; the browser scales the viewBox to fit. -->
+    <svg id="map" viewBox="0 0 2520.631 1260.315" width="1400">
+      <image href="world-map.svg" x="0" y="0" width="2520.631" height="1260.315" />
+      <g id="markers"></g>
+    </svg>
+    <p class="map-credit">World map: "BlankMap-Equirectangular", Wikimedia Commons, public domain (CC0).</p>
+  </div>
+
+  <div id="hints"></div>
+
+  <div class="guess-row">
+    <input type="text" id="guessInput" placeholder="Type your guess">
+    <button id="submitButton">Submit</button>
+  </div>
+
+  <p id="feedback" class="feedback"></p>
+
+  <p class="score-badge">Score: <span id="score">0</span></p>
+
+  <button id="newRoundButton" class="new-round-button" type="button">New Round</button>
+
+  <!-- data.js must load before game.js, and game.js before this page's own
+       script below, since each one uses things defined in the one before it. -->
+  <script src="data.js"></script>
+  <script src="game.js"></script>
+  <script>
+    // This script is the only part of the page that touches the DOM (the
+    // browser's in-memory representation of the page you can read and
+    // change with JavaScript). It reads gameState from game.js and calls
+    // startNewRound() / submitGuess(), but never contains guessing rules
+    // itself — those all live in game.js.
+
+    // Turns a year into display text. Negative years (before the common
+    // era) are shown as a positive number followed by "BC".
+    function formatYear(year) {
+      return year < 0 ? (Math.abs(year) + " BC") : String(year);
+    }
+
+    // The map's own coordinate system, taken straight from world-map.svg's
+    // viewBox. Every marker position is computed in these same units, which
+    // is what keeps a marker lined up with the real place on the map.
+    const MAP_WIDTH = 2520.631;
+    const MAP_HEIGHT = 1260.315;
+
+    // Converts a latitude/longitude pair into an {x, y} position on the map,
+    // using the plain equirectangular projection from CLAUDE.md: longitude
+    // maps left-to-right across the full map width, latitude maps
+    // top-to-bottom across the full map height.
+    function projectToMap(lat, lon) {
+      const x = (lon + 180) / 360 * MAP_WIDTH;
+      const y = (90 - lat) / 180 * MAP_HEIGHT;
+      return { x: x, y: y };
+    }
+
+    // SVG elements can't be created with the usual document.createElement —
+    // they need document.createElementNS with SVG's "namespace" (a URL that
+    // just identifies "these tags mean SVG, not HTML"). This helper hides
+    // that detail so the drawing code below reads plainly.
+    const SVG_NS = "http://www.w3.org/2000/svg";
+    function createSvgElement(tagName) {
+      return document.createElementNS(SVG_NS, tagName);
+    }
+
+    // --- Map zoom ---
+    //
+    // The SVG's viewBox attribute (set in the markup as "0 0 2520.631
+    // 1260.315") is what decides which part of the map is currently
+    // visible: its x/y is the top-left corner of the visible area, in map
+    // units, and its width/height is how much of the map that area covers.
+    // Shrinking the width/height zooms in; moving x/y pans. mapView holds
+    // the current values so the wheel handler below can adjust them.
+    let mapView = { x: 0, y: 0, width: MAP_WIDTH, height: MAP_HEIGHT };
+
+    // How far in the player can zoom, as a fraction of the full map width.
+    // 1/16th of the world's width is roughly a country-sized view.
+    const MIN_VIEW_WIDTH = MAP_WIDTH / 16;
+    const MAP_ASPECT_RATIO = MAP_HEIGHT / MAP_WIDTH;
+
+    // Writes the current mapView onto the actual <svg viewBox="...">.
+    function applyMapView() {
+      const viewBoxValue = mapView.x + " " + mapView.y + " " + mapView.width + " " + mapView.height;
+      document.getElementById("map").setAttribute("viewBox", viewBoxValue);
+    }
+
+    // Handles scrolling over the map: zooms in or out, keeping whatever
+    // point was under the cursor fixed in place, instead of always zooming
+    // toward a corner.
+    function handleMapWheel(event) {
+      // Without this, the scroll would also scroll the whole page.
+      event.preventDefault();
+
+      const mapElement = document.getElementById("map");
+      const mapRect = mapElement.getBoundingClientRect();
+
+      // Where the cursor is right now, translated from screen pixels into
+      // the map's own coordinate system (the same units as mapView).
+      const cursorX = mapView.x + (event.clientX - mapRect.left) * (mapView.width / mapRect.width);
+      const cursorY = mapView.y + (event.clientY - mapRect.top) * (mapView.height / mapRect.height);
+
+      // Scrolling up (deltaY negative) zooms in (a smaller viewBox);
+      // scrolling down zooms out.
+      const zoomFactor = event.deltaY < 0 ? 0.9 : 1.1;
+      let newWidth = mapView.width * zoomFactor;
+      newWidth = Math.min(MAP_WIDTH, Math.max(MIN_VIEW_WIDTH, newWidth));
+      const newHeight = newWidth * MAP_ASPECT_RATIO;
+
+      // Rescaling the view around the cursor position keeps the map point
+      // under the mouse in the same screen spot before and after the zoom.
+      let newX = cursorX - (cursorX - mapView.x) * (newWidth / mapView.width);
+      let newY = cursorY - (cursorY - mapView.y) * (newHeight / mapView.height);
+
+      // Keep the visible area from drifting past the edges of the map.
+      newX = Math.min(Math.max(newX, 0), MAP_WIDTH - newWidth);
+      newY = Math.min(Math.max(newY, 0), MAP_HEIGHT - newHeight);
+
+      mapView = { x: newX, y: newY, width: newWidth, height: newHeight };
+      applyMapView();
+    }
+
+    // { passive: false } is required for event.preventDefault() above to
+    // actually be allowed to stop the page from scrolling.
+    document.getElementById("map").addEventListener("wheel", handleMapWheel, { passive: false });
+
+    // How much extra space to leave around the birth/death points when
+    // framing them, as a fraction of the distance between them on each side.
+    const FIT_PADDING_RATIO = 0.5;
+
+    // However close together birth and death are, never zoom in tighter
+    // than this — otherwise two nearby cities would fit the view so
+    // tightly there'd be no surrounding geography left to recognize.
+    const MIN_FIT_WIDTH = MAP_WIDTH / 8;
+
+    // Computes a mapView that frames both the birth and death positions
+    // with some padding, instead of always showing the entire world. The
+    // closer the two points are, the closer this zooms in — which is what
+    // keeps the marker/arrow readable even for people who didn't move far
+    // between birth and death.
+    function computeFitView(person) {
+      const birthPos = projectToMap(person.birthLat, person.birthLon);
+      const deathPos = projectToMap(person.deathLat, person.deathLon);
+
+      const minX = Math.min(birthPos.x, deathPos.x);
+      const maxX = Math.max(birthPos.x, deathPos.x);
+      const minY = Math.min(birthPos.y, deathPos.y);
+      const maxY = Math.max(birthPos.y, deathPos.y);
+
+      const desiredWidth = Math.max((maxX - minX) * (1 + 2 * FIT_PADDING_RATIO), MIN_FIT_WIDTH);
+      const desiredHeight = Math.max((maxY - minY) * (1 + 2 * FIT_PADDING_RATIO), MIN_FIT_WIDTH * MAP_ASPECT_RATIO);
+
+      // Grow whichever dimension needs less space so the final box keeps
+      // the map's actual 2:1 aspect ratio instead of distorting it.
+      let fitWidth = Math.max(desiredWidth, desiredHeight / MAP_ASPECT_RATIO);
+      let fitHeight = fitWidth * MAP_ASPECT_RATIO;
+
+      // Never zoom out further than the whole map.
+      fitWidth = Math.min(fitWidth, MAP_WIDTH);
+      fitHeight = Math.min(fitHeight, MAP_HEIGHT);
+
+      let fitX = (minX + maxX) / 2 - fitWidth / 2;
+      let fitY = (minY + maxY) / 2 - fitHeight / 2;
+
+      fitX = Math.min(Math.max(fitX, 0), MAP_WIDTH - fitWidth);
+      fitY = Math.min(Math.max(fitY, 0), MAP_HEIGHT - fitHeight);
+
+      return { x: fitX, y: fitY, width: fitWidth, height: fitHeight };
+    }
+
+    // Computes a tight view centered on a single point — used as the
+    // camera's starting position, before it pulls back to frame both
+    // birth and death. Reuses MIN_VIEW_WIDTH (the manual scroll-zoom's
+    // closest allowed zoom) so the animation starts exactly as zoomed in
+    // as the player could get by scrolling.
+    function computeZoomedView(lat, lon) {
+      const position = projectToMap(lat, lon);
+      const width = MIN_VIEW_WIDTH;
+      const height = width * MAP_ASPECT_RATIO;
+
+      let x = position.x - width / 2;
+      let y = position.y - height / 2;
+      x = Math.min(Math.max(x, 0), MAP_WIDTH - width);
+      y = Math.min(Math.max(y, 0), MAP_HEIGHT - height);
+
+      return { x: x, y: y, width: width, height: height };
+    }
+
+    // A standard ease-in-out curve: starts slow, speeds up through the
+    // middle, slows down again at the end, rather than moving at a
+    // constant speed the whole time.
+    function easeInOutQuad(t) {
+      return t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+    }
+
+    // Identifies the most recent camera animation. Each call to
+    // animateMapView captures the id current at the time it started; if
+    // drawMapMarkers runs again (a new round) before that animation
+    // finishes, the id it compares against will have moved on, and the
+    // stale animation's next frame quietly stops instead of fighting the
+    // new round for control of mapView.
+    let mapAnimationId = 0;
+
+    // Animates mapView from startView to endView over durationMs, after
+    // waiting delayMs first. Interpolates the view's center point and
+    // width (deriving height from width, so the map's aspect ratio can
+    // never drift mid-animation) using requestAnimationFrame, which is
+    // what CSS transitions can't do for an SVG viewBox.
+    function animateMapView(startView, endView, delayMs, durationMs, thisAnimationId) {
+      setTimeout(function () {
+        let startTime = null;
+
+        function step(now) {
+          if (thisAnimationId !== mapAnimationId) {
+            return;
+          }
+          if (startTime === null) {
+            startTime = now;
+          }
+
+          const progress = Math.min((now - startTime) / durationMs, 1);
+          const eased = easeInOutQuad(progress);
+
+          const startCenterX = startView.x + startView.width / 2;
+          const startCenterY = startView.y + startView.height / 2;
+          const endCenterX = endView.x + endView.width / 2;
+          const endCenterY = endView.y + endView.height / 2;
+
+          const centerX = startCenterX + (endCenterX - startCenterX) * eased;
+          const centerY = startCenterY + (endCenterY - startCenterY) * eased;
+          const width = startView.width + (endView.width - startView.width) * eased;
+          const height = width * MAP_ASPECT_RATIO;
+
+          mapView = { x: centerX - width / 2, y: centerY - height / 2, width: width, height: height };
+          applyMapView();
+
+          if (progress < 1) {
+            requestAnimationFrame(step);
+          }
+        }
+
+        requestAnimationFrame(step);
+      }, delayMs);
+    }
+
+    // --- Map panning ---
+    //
+    // "Pointer events" (pointerdown/pointermove/pointerup) fire for mouse,
+    // pen, and touch alike, so click-drag panning works the same way
+    // regardless of input device. isDragging and lastPointer* track
+    // whether a drag is in progress and where the pointer was last, so
+    // handleMapPointerMove only has to look at how far it moved since then.
+    let isDragging = false;
+    let lastPointerX = 0;
+    let lastPointerY = 0;
+
+    function handleMapPointerDown(event) {
+      isDragging = true;
+      lastPointerX = event.clientX;
+      lastPointerY = event.clientY;
+      // Routes all pointer events to this element until pointerup, even if
+      // the cursor briefly leaves the map while dragging quickly.
+      event.target.setPointerCapture(event.pointerId);
+      document.getElementById("map").classList.add("dragging");
+    }
+
+    function handleMapPointerMove(event) {
+      if (!isDragging) {
+        return;
+      }
+
+      const mapElement = document.getElementById("map");
+      const mapRect = mapElement.getBoundingClientRect();
+
+      const deltaX = event.clientX - lastPointerX;
+      const deltaY = event.clientY - lastPointerY;
+      lastPointerX = event.clientX;
+      lastPointerY = event.clientY;
+
+      // Moving the pointer right should make the map content follow it
+      // (and so the visible area's x moves left), which is why these
+      // subtract the delta instead of adding it.
+      let newX = mapView.x - deltaX * (mapView.width / mapRect.width);
+      let newY = mapView.y - deltaY * (mapView.height / mapRect.height);
+
+      // Same edge clamping as zooming, so a drag can't reveal empty space
+      // beyond the actual map.
+      newX = Math.min(Math.max(newX, 0), MAP_WIDTH - mapView.width);
+      newY = Math.min(Math.max(newY, 0), MAP_HEIGHT - mapView.height);
+
+      mapView = { x: newX, y: newY, width: mapView.width, height: mapView.height };
+      applyMapView();
+    }
+
+    function handleMapPointerUp(event) {
+      isDragging = false;
+      document.getElementById("map").classList.remove("dragging");
+    }
+
+    document.getElementById("map").addEventListener("pointerdown", handleMapPointerDown);
+    document.getElementById("map").addEventListener("pointermove", handleMapPointerMove);
+    document.getElementById("map").addEventListener("pointerup", handleMapPointerUp);
+    document.getElementById("map").addEventListener("pointercancel", handleMapPointerUp);
+
+    // Draws one marker (a dot plus a year label) at a given lat/lon, in a
+    // given color. A white halo sits behind the dot, and the label is
+    // drawn with a white outline (via paint-order, which draws the stroke
+    // before the fill), so both stay readable whether they land on the tan
+    // land or the blue ocean.
+    //
+    // The three pieces are grouped in a single <g> with the "marker-pop"
+    // class (styled in style.css), which starts invisible/shrunk down and
+    // transitions to full size — delayMs is how long to wait, after this
+    // function runs, before starting that transition. That's what lets the
+    // birth marker appear first and the death marker follow a moment
+    // later, instead of both popping in at once.
+    function drawMarker(lat, lon, year, color, delayMs) {
+      const position = projectToMap(lat, lon);
+
+      const group = createSvgElement("g");
+      group.setAttribute("class", "marker-pop");
+      // Scaling a group normally happens around its combined bounding box;
+      // setting this explicitly makes it scale from the marker's own
+      // point instead, which is what keeps the pop-in centered correctly
+      // even though the label sticks out to one side.
+      group.style.transformOrigin = position.x + "px " + position.y + "px";
+      document.getElementById("markers").appendChild(group);
+
+      const halo = createSvgElement("circle");
+      halo.setAttribute("cx", position.x);
+      halo.setAttribute("cy", position.y);
+      halo.setAttribute("r", 8);
+      halo.setAttribute("fill", "white");
+      halo.setAttribute("stroke", "black");
+      halo.setAttribute("stroke-width", "0.75");
+      group.appendChild(halo);
+
+      const dot = createSvgElement("circle");
+      dot.setAttribute("cx", position.x);
+      dot.setAttribute("cy", position.y);
+      dot.setAttribute("r", 5);
+      dot.setAttribute("fill", color);
+      group.appendChild(dot);
+
+      const label = createSvgElement("text");
+      label.setAttribute("x", position.x + 13);
+      label.setAttribute("y", position.y + 5);
+      label.setAttribute("font-size", "20");
+      label.setAttribute("font-weight", "bold");
+      label.setAttribute("fill", "black");
+      label.setAttribute("stroke", "white");
+      label.setAttribute("stroke-width", "3");
+      label.setAttribute("paint-order", "stroke");
+      label.textContent = formatYear(year);
+      group.appendChild(label);
+
+      // The delay (setTimeout) controls the sequencing between markers;
+      // the extra requestAnimationFrame makes sure the browser has drawn
+      // the group in its starting (invisible) state at least once before
+      // switching to "marker-visible" — without it, the transition can be
+      // skipped and the marker would just snap straight to full size.
+      setTimeout(function () {
+        requestAnimationFrame(function () {
+          group.classList.add("marker-visible");
+        });
+      }, delayMs);
+    }
+
+    // How long after the birth marker starts appearing before the arrow
+    // starts drawing (giving the marker a moment to pop in first), how
+    // long the draw itself takes, and — derived from those two — the
+    // moment the death marker should appear, exactly as the arrow tip
+    // reaches it.
+    const ARROW_DRAW_DELAY_MS = 150;
+    const ARROW_DRAW_DURATION_MS = 1300;
+    const DEATH_MARKER_DELAY_MS = ARROW_DRAW_DELAY_MS + ARROW_DRAW_DURATION_MS;
+
+    // Draws a line with an arrowhead from the birth position to the death
+    // position, in map coordinates, animated as if it were being drawn
+    // from one end to the other.
+    //
+    // The "line draws itself" effect is the standard SVG trick: give the
+    // line a single dash exactly as long as the line itself
+    // (stroke-dasharray), then start with that dash shifted completely out
+    // of view (stroke-dashoffset equal to the same length) and transition
+    // the offset down to 0, which slides the dash into place from start to
+    // end. The arrowhead can't be drawn with marker-end for this, though —
+    // markers are positioned at a line's endpoint regardless of how much
+    // of the dash is visible, so it would just sit at the destination from
+    // frame one. Instead it's a separate triangle, positioned and rotated
+    // by hand, kept hidden until the line finishes drawing.
+    function drawArrow(fromLat, fromLon, toLat, toLon) {
+      const from = projectToMap(fromLat, fromLon);
+      const to = projectToMap(toLat, toLon);
+
+      const deltaX = to.x - from.x;
+      const deltaY = to.y - from.y;
+      const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+      // Scaled down for very close birth/death pairs, so shortening the
+      // line never eats up more than a quarter of its actual length.
+      const shortenBy = Math.min(10, distance * 0.25);
+      const shortenedRatio = (distance - shortenBy) / distance;
+      const endX = from.x + deltaX * shortenedRatio;
+      const endY = from.y + deltaY * shortenedRatio;
+      const lineLength = distance - shortenBy;
+      // The dash is made slightly longer than the line itself. With an
+      // exact match, the hidden dash's start and the visible dash's end
+      // land on precisely the same point (one dash-cycle apart), and the
+      // round linecap below rounds that boundary into a stray dot sitting
+      // right on the destination — even while "fully hidden". The 1-unit
+      // overhang just runs past the line's actual end harmlessly.
+      const dashLength = lineLength + 1;
+
+      const halo = createSvgElement("line");
+      halo.setAttribute("class", "arrow-line");
+      halo.setAttribute("x1", from.x);
+      halo.setAttribute("y1", from.y);
+      halo.setAttribute("x2", endX);
+      halo.setAttribute("y2", endY);
+      halo.setAttribute("stroke", "white");
+      halo.setAttribute("stroke-width", "6");
+      halo.setAttribute("stroke-linecap", "round");
+      halo.style.strokeDasharray = dashLength;
+      halo.style.strokeDashoffset = dashLength;
+      document.getElementById("markers").appendChild(halo);
+
+      const arrow = createSvgElement("line");
+      arrow.setAttribute("class", "arrow-line");
+      arrow.setAttribute("x1", from.x);
+      arrow.setAttribute("y1", from.y);
+      arrow.setAttribute("x2", endX);
+      arrow.setAttribute("y2", endY);
+      arrow.setAttribute("stroke", "black");
+      arrow.setAttribute("stroke-width", "2.5");
+      arrow.style.strokeDasharray = dashLength;
+      arrow.style.strokeDashoffset = dashLength;
+      document.getElementById("markers").appendChild(arrow);
+
+      // The arrowhead triangle is authored pointing in the +x direction
+      // with its tip at the origin (see the "M0,0 ..." path below), then
+      // translated to the destination point and rotated to match the
+      // direction of travel — so, unrotated, it would point due east.
+      const angleDegrees = Math.atan2(deltaY, deltaX) * (180 / Math.PI);
+
+      const arrowhead = createSvgElement("path");
+      arrowhead.setAttribute("class", "arrowhead-pop");
+      arrowhead.setAttribute("d", "M0,0 L-13,6.5 L-13,-6.5 Z");
+      arrowhead.setAttribute("transform", "translate(" + endX + "," + endY + ") rotate(" + angleDegrees + ")");
+      arrowhead.setAttribute("fill", "black");
+      arrowhead.setAttribute("stroke", "white");
+      arrowhead.setAttribute("stroke-width", "1");
+      arrowhead.setAttribute("stroke-linejoin", "round");
+      document.getElementById("markers").appendChild(arrowhead);
+
+      // Start the draw after ARROW_DRAW_DELAY_MS (the extra
+      // requestAnimationFrame guarantees the starting, fully-hidden state
+      // above has actually been painted at least once before the
+      // transition to stroke-dashoffset: 0 begins). The arrowhead then
+      // fades in once the line has had time to finish drawing.
+      setTimeout(function () {
+        requestAnimationFrame(function () {
+          halo.style.strokeDashoffset = "0";
+          arrow.style.strokeDashoffset = "0";
+        });
+      }, ARROW_DRAW_DELAY_MS);
+
+      setTimeout(function () {
+        arrowhead.classList.add("arrowhead-visible");
+      }, ARROW_DRAW_DELAY_MS + ARROW_DRAW_DURATION_MS);
+    }
+
+    // Clears anything left over from the previous round; snaps the camera
+    // to a tight view on the birth point, then animates it out to frame
+    // both birth and death (in sync with the arrow's draw-on animation);
+    // draws the arrow; then pops in the birth marker (green) followed by
+    // the death marker (red) a moment later.
+    function drawMapMarkers() {
+      const markersGroup = document.getElementById("markers");
+      markersGroup.innerHTML = "";
+
+      const person = gameState.currentPerson;
+
+      const startView = computeZoomedView(person.birthLat, person.birthLon);
+      const endView = computeFitView(person);
+
+      mapAnimationId++;
+      mapView = startView;
+      applyMapView();
+      animateMapView(startView, endView, ARROW_DRAW_DELAY_MS, ARROW_DRAW_DURATION_MS, mapAnimationId);
+
+      drawArrow(person.birthLat, person.birthLon, person.deathLat, person.deathLon);
+      drawMarker(person.birthLat, person.birthLon, person.birthYear, "green", 0);
+      drawMarker(person.deathLat, person.deathLon, person.deathYear, "red", DEATH_MARKER_DELAY_MS);
+    }
+
+    // Updates the visible score to match gameState.score.
+    function displayScore() {
+      document.getElementById("score").textContent = gameState.score;
+    }
+
+    // Adds one hint paragraph to the hints area. Called each time a wrong
+    // guess unlocks a new hint. Each hint is prefixed with a light bulb icon
+    // so it reads instantly as a clue, not just a paragraph of text.
+    function addHintToPage(hintText) {
+      const hintParagraph = document.createElement("p");
+
+      const icon = document.createElement("span");
+      icon.className = "hint-icon";
+      icon.setAttribute("aria-hidden", "true");
+      icon.textContent = "\u{1F4A1}";
+      hintParagraph.appendChild(icon);
+
+      hintParagraph.appendChild(document.createTextNode(" " + hintText));
+      document.getElementById("hints").appendChild(hintParagraph);
+    }
+
+    // Locks the input and button once a round has ended, so the player
+    // can't keep guessing after a win, a loss, or the answer being shown.
+    function lockGuessing() {
+      document.getElementById("guessInput").disabled = true;
+      document.getElementById("submitButton").disabled = true;
+    }
+
+    // Sets the feedback message and, optionally, a style for it: "success"
+    // (green, correct guess) or "fail" (red, wrong guess or out of guesses).
+    // Passing no type resets it back to plain, unstyled text.
+    function setFeedback(text, type) {
+      const feedback = document.getElementById("feedback");
+      feedback.textContent = text;
+      feedback.className = "feedback" + (type ? " feedback-" + type : "");
+    }
+
+    // Like setFeedback, but takes a sentence split into three parts around a
+    // personality name, and wraps that name in its own "answer-name" badge
+    // so it jumps out instead of blending into the rest of the sentence.
+    function setFeedbackWithName(before, name, after, type) {
+      const feedback = document.getElementById("feedback");
+      feedback.textContent = "";
+      feedback.appendChild(document.createTextNode(before));
+
+      const nameBadge = document.createElement("span");
+      nameBadge.className = "answer-name";
+      nameBadge.textContent = name;
+      feedback.appendChild(nameBadge);
+
+      feedback.appendChild(document.createTextNode(after));
+      feedback.className = "feedback" + (type ? " feedback-" + type : "");
+    }
+
+    // Sets up a fresh round: picks a new person (via game.js) and clears
+    // everything on the page left over from any previous round.
+    function beginRound() {
+      startNewRound();
+      document.getElementById("hints").innerHTML = "";
+      setFeedback("");
+      document.getElementById("guessInput").value = "";
+      document.getElementById("guessInput").disabled = false;
+      document.getElementById("submitButton").disabled = false;
+      drawMapMarkers();
+      displayScore();
+    }
+
+    // Runs when the player clicks Submit. Reads the typed guess, hands it
+    // to submitGuess() in game.js, and displays whatever comes back.
+    function handleSubmit() {
+      const guessInput = document.getElementById("guessInput");
+      const result = submitGuess(guessInput.value);
+
+      if (result.correct) {
+        setFeedbackWithName(
+          "Correct! It was ",
+          gameState.currentPerson.name,
+          ". You scored " + result.pointsAwarded + " points.",
+          "success"
+        );
+        lockGuessing();
+      } else if (result.roundOver) {
+        setFeedbackWithName("Out of guesses. The answer was ", result.answer, ".", "fail");
+        lockGuessing();
+      } else {
+        setFeedback("Wrong guess, try again.", "fail");
+        addHintToPage(result.newHint);
+      }
+
+      guessInput.value = "";
+      displayScore();
+    }
+
+    // Wires the button click to handleSubmit. This is called an "event
+    // listener" — a function the browser holds onto and runs later,
+    // whenever the given event (here, "click") happens on that element.
+    document.getElementById("submitButton").addEventListener("click", handleSubmit);
+
+    // Lets the player press Enter in the text box instead of having to
+    // click Submit. "keydown" fires for every key; checking event.key
+    // filters that down to just the Enter key.
+    document.getElementById("guessInput").addEventListener("keydown", function (event) {
+      if (event.key === "Enter") {
+        handleSubmit();
+      }
+    });
+
+    // Lets the player jump straight to a new round (whether the current one
+    // is won, lost, or still in progress) instead of reloading the page.
+    document.getElementById("newRoundButton").addEventListener("click", beginRound);
+
+    // Start the very first round as soon as the page loads.
+    beginRound();
+  </script>
+
+</div>
+</body>
+</html>
