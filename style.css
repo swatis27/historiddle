@@ -281,3 +281,31 @@ h1 {
 .new-round-button:active {
   transform: translateY(1px);
 }
+
+/* On a narrow phone screen, the card's own padding eats a big share of
+   the already-limited width, so the map renders much smaller than it
+   needs to. Shrinking that padding — and letting the map bleed past it
+   to the screen edge, since it's the one element worth maximizing space
+   for — gives the map noticeably more room without touching anything
+   else about the layout. */
+@media (max-width: 600px) {
+  body {
+    padding: 16px 8px;
+  }
+
+  .page {
+    padding: 16px 12px 20px;
+    border-radius: 14px;
+  }
+
+  h1 {
+    font-size: 1.5rem;
+    margin-bottom: 14px;
+  }
+
+  .map-frame {
+    margin-left: -12px;
+    margin-right: -12px;
+    border-radius: 0;
+  }
+}
